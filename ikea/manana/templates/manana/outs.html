@@ -1,0 +1,106 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block link %}
+    <link rel="stylesheet" href="{% static 'manana/css/manana.css' %}" type="text/css">
+{% endblock %}
+{% block title %} - Mañanas{% endblock %}
+{% block body %}
+    <div class="container">
+        <div class="error-messages">
+            {% for message in messages %}
+            <div class="alert alert-danger alert-temporary">{{ message }}</div>
+            {% endfor %}
+          </div>
+        <div class="row text-center my-4">
+                <div class="form">
+                    <div class="form-group">
+                        <form method="POST">
+                            {% csrf_token %}
+                                {{ form.code }}
+                                {{ form.ubicacion }}
+                                {{ form.puertas }}
+                                {{ form.motivo }}
+                                <button type="submit">Guardar</button>                               
+                        </form>
+                    </div>
+                </div>
+        </div>
+        <div class="form row text-center">
+            <div class="form-group">
+                <ul>
+                    <table class="table table-striped table-secondary table-bordered align-middle table-responsive">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Referencia</th>
+                                <th scope="col">Ubicacion</th>
+                                <th scope="col">Puerta</th>
+                                <th scope="col">Motivo</th>
+                                <th scope="col">Bajado</th>
+                                <th scope="col">Cancelar</th>
+                                <th scope="col">Fecha</th>
+                             </tr>                   
+                        </thead>
+                        <tbody>
+                    {% for out in outs_data %}                            
+                            <tr>
+                                <th scope="row">{{ forloop.counter }}</th>
+                                <td>{{ out.code }}</td>
+                                <td>{{ out.ubicacion }}</td>
+                                <td>{{ out.puertas }}</td>
+                                <td>{{ out.motivo }}</td>
+                                <td><input type="checkbox" id="checkbox_{{ out.id }}" {% if out.down %}checked{% endif %}></td>
+                                <td>
+                                    <form method="POST" action="{% url 'manana:delete_out' out.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" onclick="return confirm('¿Estás seguro de que deseas eliminar este registro?')">Eliminar</button>
+                                    </form>
+                                </td>
+                                <td>{{ out.hora|date:'Y-m-d H:i' }}</td>
+                            </tr>
+                           
+                    {% endfor %}
+                </tbody>
+            </table>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Escucha los cambios en los checkboxes
+            $("input[type='checkbox']").change(function() {
+                var checkboxId = $(this).attr('id');
+                var outId = checkboxId.split('_')[1];
+
+                // Realiza una solicitud AJAX para actualizar el campo "down" en la base de datos
+                $.ajax({
+                    type: "POST",
+                    url: "/update_out_status/",
+                    data: {
+                        'out_id': outId,
+                        'checked': $(this).prop('checked') ? 'True' : 'False',
+                        'csrfmiddlewaretoken': "{{ csrf_token }}"
+                    },
+                    cache: false,
+                    success: function(data) {
+                        // Se ejecuta cuando la solicitud AJAX se completa exitosamente
+                        console.log(data);
+                        location.reload();
+                    },
+                    error: function(xhr, textStatus, errorThrown) {
+                        // Se ejecuta si hay algún error en la solicitud AJAX
+                        console.log(xhr.responseText);
+                    }
+                });
+            });
+        });
+    </script>
+    <script>
+        // Código JavaScript para ocultar los mensajes de error temporales después de un tiempo determinado
+        setTimeout(function() {
+            $('.alert-temporary').fadeOut('slow');
+        }, 3000); // Duración del mensaje en milisegundos (en este caso, 3 segundos)
+    </script>
+{% endblock %}
